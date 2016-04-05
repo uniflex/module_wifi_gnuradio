@@ -7,10 +7,10 @@ import wishful_upis as upis
 import wishful_framework as wishful_module
 from wishful_framework.classes import exceptions
 
-__author__ = "Piotr Gawlowicz" <==== Please update
-__copyright__ = "Copyright (c) 2015, Technische Universität Berlin"
+__author__ = "Felice Di Stolfa"
+__copyright__ = "Copyright (c) 2016, Technische Universität Berlin"
 __version__ = "0.1.0"
-__email__ = "{gawlowicz}@tkn.tu-berlin.de"
+__email__ = "" #<==== Please update
 
 
 @wishful_module.build_module
