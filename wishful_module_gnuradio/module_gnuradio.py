@@ -19,10 +19,12 @@ __email__ = "{zubow}@tkn.tu-berlin.de"
 class RadioProgramState(Enum):
     INACTIVE = 1
     RUNNING = 2
-    PAUSED = 2
-    STOPPED = 2
+    PAUSED = 3
+    STOPPED = 4
 
-
+"""
+    Basic GNURadio connector module.
+"""
 @wishful_module.build_module
 class GnuRadioModule(wishful_module.AgentModule):
     def __init__(self):
@@ -139,7 +141,6 @@ class GnuRadioModule(wishful_module.AgentModule):
                     getattr(self.ctrl_socket, "set_%s" % k)(v)
                 except Exception as e:
                     self.log.error("Unknown variable '%s -> %s'" % (k, e))
-            #self.ctrl_socket = None
         else:
             self.log.warn("no running or paused radio program; ignore command")
 
@@ -154,9 +155,6 @@ class GnuRadioModule(wishful_module.AgentModule):
                     rv[k] = res
                 except Exception as e:
                     self.log.error("Unknown variable '%s -> %s'" % (k, e))
-            #self.ctrl_socket = None
-            #if len(args) == 1:
-            #    return rv[args[0]]
             return rv
         else:
             self.log.warn("no running or paused radio program; ignore command")
@@ -198,11 +196,51 @@ class GnuRadioModule(wishful_module.AgentModule):
         self.log.info('gr_radio_programs:\n{}'.format(pprint.pformat(self.gr_radio_programs)))
 
 
-    def sigint_ignore(self):
-        import os
-        os.setpgrp()
-
-
     def init_proxy(self):
         if self.ctrl_socket == None:
             self.ctrl_socket = xmlrpc.client.ServerProxy("http://%s:%d" % (self.ctrl_socket_host, self.ctrl_socket_port))
+
+"""
+    Secure GNURadio connector module which checks whether configuration meets regulation requirements, i.e. used frequency,
+    transmit power, ...
+"""
+
+class SecureGnuRadioModule(GnuRadioModule):
+    def __init__(self):
+        super(SecureGnuRadioModule, self).__init__()
+        self.log = logging.getLogger('SecureGnuRadioModule')
+
+
+    @wishful_module.bind_function(upis.radio.set_active)
+    def set_active(self, **kwargs):
+
+        """ TODO: do some static checks here """
+        if True:
+            return super(SecureGnuRadioModule, self).set_active(kwargs)
+        else:
+            self.log.warn('Not allowed ...')
+
+
+    @wishful_module.bind_function(upis.radio.set_inactive)
+    def set_inactive(self, **kwargs):
+
+        """ TODO: do some static checks here """
+        if True:
+            return super(SecureGnuRadioModule, self).set_inactive(kwargs)
+        else:
+            self.log.warn('Not allowed ...')
+
+
+    @wishful_module.bind_function(upis.radio.set_parameter_lower_layer)
+    def gnuradio_set_vars(self, **kwargs):
+
+        """ TODO: do some static checks here """
+        if True:
+            return super(SecureGnuRadioModule, self).gnuradio_set_vars(kwargs)
+        else:
+            self.log.warn('Not allowed ...')
+
+
+    @wishful_module.bind_function(upis.radio.get_parameter_lower_layer)
+    def gnuradio_get_vars(self, **kwargs):
+        return super(SecureGnuRadioModule, self).gnuradio_get_vars(kwargs)
