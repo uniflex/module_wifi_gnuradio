@@ -9,7 +9,7 @@ if __name__ == '__main__':
 
     grm = GnuRadioModule()
 
-    fid = open(os.path.join(os.path.expanduser("~"), "test", "testgrc.grc"))
+    fid = open(os.path.join(os.path.expanduser("."), "testdata", "testgrc.grc"))
     grc_xml = fid.read()
 
     #print(grc_xml)
