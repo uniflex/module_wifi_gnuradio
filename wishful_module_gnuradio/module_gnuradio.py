@@ -9,6 +9,8 @@ import pprint
 import xmlrpc.client
 from enum import Enum
 
+from generator.rp_combiner import RadioProgramCombiner
+
 __author__ = "A. Zubow"
 __copyright__ = "Copyright (c) 2016, Technische Universität Berlin"
 __version__ = "0.1.0"
@@ -47,29 +49,111 @@ class GnuRadioModule(wishful_module.AgentModule):
 
         self.gr_state = RadioProgramState.INACTIVE
 
+        self.combiner = None
         self.log.debug('initialized ...')
+
+
+    @wishful_module.bind_function(upis.radio.add_program)
+    def add_program(self, **kwargs):
+        """ Serialize radio program to local repository """
+
+        # params
+        grc_radio_program_name = kwargs['grc_radio_program_name']  # name of the radio program
+        grc_radio_program_code = kwargs['grc_radio_program_code']  # radio program XML flowgraph
+
+        self.log.info("Add radio program %s to local repository" % grc_radio_program_name)
+
+        # serialize radio program XML flowgraph to file
+        fid = open(os.path.join(self.gr_radio_programs_path, grc_radio_program_name + '.grc'), 'a')
+        fid.write(grc_radio_program_code)
+        fid.close()
+
+        # rebuild radio program dictionary
+        self.build_radio_program_dict()
+
+
+    @wishful_module.bind_function(upis.radio.merge_programs)
+    def merge_programs(self, **kwargs):
+        '''
+            Given a set of Gnuradio programs (described as GRC flowgraph) this program combines all
+            those radio programs in a single meta radio program which allows very fast switching from
+            one protocol to another.
+        '''
+
+        # params
+        grc_radio_program_names = kwargs['grc_radio_program_names']  # list of radio program names
+
+        self.combiner = RadioProgramCombiner(self.gr_radio_programs_path)
+
+        # make sure all radio programms are already uploaded
+        for rp in grc_radio_program_names:
+            if rp not in self.gr_radio_programs:
+                self.log.warn('Cannot merge missing radio program!!!')
+                raise AttributeError("Unknown radio program %s" % rp)
+            self.combiner.add_radio_program(rp + '_', rp + '.grc')
+
+        # run generator
+        self.combiner.generate()
+
+    @wishful_module.bind_function(upis.radio.switch_program)
+    def switch_program(self, target_program_name, **kwargs):
+        '''
+            Run-time control of meta radio program which allows very fast switching from
+            one protocol to another:
+            - context switching
+        '''
+
+        # open proxy
+        proxy = xmlrpc.client.ServerProxy("http://localhost:8080/")
+
+        # load metadata
+        proto_usrp_src_dicts = eval(open(os.path.join(self.gr_radio_programs_path, 'meta_rp_proto_dict.txt'), 'r').read())
+        usrp_source_fields = eval(open(os.path.join(self.gr_radio_programs_path, 'meta_rp_fields.txt'), 'r').read())
+
+        res = getattr(proxy, "get_session_var")()
+        self.log.info('Current proto: %s' % str(res))
+        #last_proto = res[0]
+
+        # get IDX of new radio program
+        new_proto_idx = self.combiner.get_proto_idx(target_program_name)
+
+        # read variables of new protocol
+        init_session_value = []
+        init_session_value.append(new_proto_idx)
+        for field in usrp_source_fields:
+            res = getattr(proxy, "get_%s" % proto_usrp_src_dicts[new_proto_idx][field])()
+            init_session_value.append(float(res))
+
+        self.log.info('Switch to protocol %d with cfg %s' % (new_proto_idx, str(init_session_value)))
+        getattr(proxy, "set_session_var")(init_session_value)
+
+
+    @wishful_module.bind_function(upis.radio.remove_program)
+    def remove_program(self, **kwargs):
+        """ Remove radio program from local repository """
+
+        grc_radio_program_name = kwargs['grc_radio_program_name']  # name of the radio program
+
+        if self.gr_radio_programs is not None and grc_radio_program_name in self.gr_radio_programs:
+            os.remove(self.gr_radio_programs[grc_radio_program_name])
+            os.rmdir(os.path.join(self.gr_radio_programs_path, grc_radio_program_name))
+            os.remove(os.path.join(self.gr_radio_programs_path, grc_radio_program_name + '.grc'))
+
 
     @wishful_module.bind_function(upis.radio.set_active)
     def set_active(self, **kwargs):
 
         # params
         grc_radio_program_name = kwargs['grc_radio_program_name'] # name of the radio program
-        grc_radio_program_code = kwargs['grc_radio_program_code'] # radio program XML flowgraph
 
         if self.gr_state == RadioProgramState.INACTIVE:
-
             self.log.info("Start new radio program")
-
             self.ctrl_socket = None
 
             """Launches Gnuradio in background"""
             if self.gr_radio_programs is None or grc_radio_program_name not in self.gr_radio_programs:
-                # serialize radio program XML flowgraph to file
-                fid = open(os.path.join(self.gr_radio_programs_path, grc_radio_program_name + '.grc'), 'a')
-                fid.write(grc_radio_program_code)
-                fid.close()
-
-                self.build_radio_program_dict()
+                # serialize radio program to local repository
+                self.add_program(kwargs)
             if self.gr_process_io is None:
                 self.gr_process_io = {'stdout': open('/tmp/gnuradio.log', 'w+'), 'stderr': open('/tmp/gnuradio-err.log', 'w+')}
             if grc_radio_program_name not in self.gr_radio_programs:
@@ -80,6 +164,7 @@ class GnuRadioModule(wishful_module.AgentModule):
                 self.gr_process.kill()
                 self.gr_process = None
             try:
+                # start GNURadio process
                 self.gr_radio_program_name = grc_radio_program_name
                 self.gr_process = subprocess.Popen(["env", "python2", self.gr_radio_programs[grc_radio_program_name]],
                                                    stdout=self.gr_process_io['stdout'], stderr=self.gr_process_io['stderr'])
@@ -143,6 +228,7 @@ class GnuRadioModule(wishful_module.AgentModule):
                     self.log.error("Unknown variable '%s -> %s'" % (k, e))
         else:
             self.log.warn("no running or paused radio program; ignore command")
+
 
     @wishful_module.bind_function(upis.radio.get_parameter_lower_layer)
     def gnuradio_get_vars(self, **kwargs):
