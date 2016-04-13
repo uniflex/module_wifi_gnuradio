@@ -64,7 +64,7 @@ class GnuRadioModule(wishful_module.AgentModule):
         self.log.info("Add radio program %s to local repository" % grc_radio_program_name)
 
         # serialize radio program XML flowgraph to file
-        fid = open(os.path.join(self.gr_radio_programs_path, grc_radio_program_name + '.grc'), 'a')
+        fid = open(os.path.join(self.gr_radio_programs_path, grc_radio_program_name + '.grc'), 'w')
         fid.write(grc_radio_program_code)
         fid.close()
 
@@ -93,7 +93,13 @@ class GnuRadioModule(wishful_module.AgentModule):
             self.combiner.add_radio_program(rp + '_', rp + '.grc')
 
         # run generator
-        self.combiner.generate()
+        rp_fname = self.combiner.generate()
+
+        # rebuild radio program dictionary
+        self.build_radio_program_dict()
+
+        return rp_fname
+
 
     @wishful_module.bind_function(upis.radio.switch_program)
     def switch_program(self, target_program_name, **kwargs):

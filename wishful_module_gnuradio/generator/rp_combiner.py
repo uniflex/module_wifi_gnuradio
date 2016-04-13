@@ -29,6 +29,9 @@ class RadioProgramCombiner():
         self.usrp_source_fields = ['samp_rate', 'center_freq0', 'gain0']
         self.common_selector_id = None
         self.common_blocks_socket_pdu_id = None
+        self.gen_grc_fname = 'meta_rp.grc'
+        self.gen_proto_dict_fname = 'meta_rp_proto_dict.txt'
+        self.gen_proto_fields_fname = 'meta_rp_fields.txt'
 
 
     def add_radio_program(self, proto_prefix, proto_grc_file_name):
@@ -37,10 +40,11 @@ class RadioProgramCombiner():
 
     def get_proto_idx(self, target_proto):
         for protocol_it, proto_prefix in enumerate(self.radio_programs):
-            if target_proto == self.radio_programs[proto_prefix]:
+            if target_proto == proto_prefix.replace('_', ''): #self.radio_programs[proto_prefix]:
                 return protocol_it
 
         return None
+
 
     def generate(self):
         """ generate meta radio program """
@@ -50,7 +54,7 @@ class RadioProgramCombiner():
 
         # open template
         self.log.info('Load base config ...')
-        base_xfile = 'gen_stub.grc'
+        base_xfile = 'generator/gen_stub.grc'
         base_tree = etree.parse(base_xfile)
 
         # copy base blocks to new document
@@ -71,7 +75,8 @@ class RadioProgramCombiner():
         for protocol_it, proto_prefix in enumerate(self.radio_programs):
             proto_xfile = self.radio_programs[proto_prefix]
 
-            proto_trees.append(etree.parse(proto_xfile))
+            ptree = etree.parse(proto_xfile)
+            proto_trees.append(ptree)
             proto_vars.append(self._rename_all_variables(proto_prefix, proto_trees[protocol_it], coord_y_offsets[protocol_it]))
             proto_usrp_src_dicts.append(self._copy_usrp_src_cfg(proto_trees[protocol_it].getroot(), proto_vars[protocol_it]))
 
@@ -95,6 +100,16 @@ class RadioProgramCombiner():
                         if param_key.text == 'id':
                             # replace by the new blocks_socket_pdu
                             old_blocks_socket_pdu_id.append(param_val.text)
+                elif block_key.text == 'options':
+                    found = False
+                    # skip top block
+                    for param in proto_block.findall("param"):
+                        param_val = param.find("value")
+                        param_key = param.find("key")
+                        if param_key.text == 'id' and param_val.text == proto_prefix + 'top_block':
+                            found = True
+                    if not found:
+                        new_root.append(proto_block)
                 else:
                     new_root.append(proto_block)
 
@@ -147,19 +162,20 @@ class RadioProgramCombiner():
 
         self.log.info('Serialize combined grc file')
         new_tree = etree.ElementTree(new_root)
-        new_tree.write(os.path.join(self.gr_radio_programs_path, 'meta_rp.grc'))
+        new_tree.write(os.path.join(self.gr_radio_programs_path, self.gen_grc_fname))
         #assert filecmp.cmp('../testdata/all.grc', '../testdata/_all.grc')
 
-        fout = open(os.path.join(self.gr_radio_programs_path, 'meta_rp_proto_dict.txt'), 'w')
+        fout = open(os.path.join(self.gr_radio_programs_path, self.gen_proto_dict_fname), 'w')
         fout.write(str(proto_usrp_src_dicts))
         fout.close()
         # assert filecmp.cmp('../testdata/proto_usrp_src_dicts.txt', '../testdata/_proto_usrp_src_dicts.txt')
 
-        fout = open(os.path.join(self.gr_radio_programs_path, 'meta_rp_fields.txt'), 'w')
+        fout = open(os.path.join(self.gr_radio_programs_path, self.gen_proto_fields_fname), 'w')
         fout.write(str(self.usrp_source_fields))
         fout.close()
         #assert filecmp.cmp('../testdata/usrp_source_fields.txt', '../testdata/_usrp_source_fields.txt')
 
+        return self.gen_grc_fname
 
     def _get_num_protocols(self):
         return len(self.radio_programs)
