@@ -15,7 +15,4 @@ if __name__ == '__main__':
     #print(inval.get('grc_radio_program_code'))
 
 
-    grm.set_inactive(**inval)
-
-
-
+    grm.set_active(**inval)
