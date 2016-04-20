@@ -77,6 +77,7 @@ class GnuRadioModule(wishful_module.AgentModule):
         grc_radio_program_name = kwargs['grc_radio_program_name']  # name of the radio program
         grc_radio_program_code = kwargs['grc_radio_program_code']  # radio program XML flowgraph
 
+
         self.log.info("Add radio program %s to local repository" % grc_radio_program_name)
 
         # serialize radio program XML flowgraph to file
@@ -175,7 +176,7 @@ class GnuRadioModule(wishful_module.AgentModule):
             """Launches Gnuradio in background"""
             if self.gr_radio_programs is None or grc_radio_program_name not in self.gr_radio_programs:
                 # serialize radio program to local repository
-                self.add_program(kwargs)
+               self.add_program(**kwargs)
             if self.gr_process_io is None:
                 self.gr_process_io = {'stdout': open('/tmp/gnuradio.log', 'w+'), 'stderr': open('/tmp/gnuradio-err.log', 'w+')}
             if grc_radio_program_name not in self.gr_radio_programs:
@@ -258,6 +259,7 @@ class GnuRadioModule(wishful_module.AgentModule):
             rv = {}
             self.init_proxy()
             for k, v in kwargs.items():
+
                 try:
                     res = getattr(self.ctrl_socket, "get_%s" % k)()
                     rv[k] = res
@@ -323,7 +325,7 @@ class SecureGnuRadioModule(GnuRadioModule):
     def set_active(self, **kwargs):
 
         grc_radio_program_name = kwargs['grc_radio_program_name']
-        tree = ET.ElementTree(file = os.path.join(os.path.expanduser("."), "testdata", grc_radio_program_name))
+        tree = ET.ElementTree(file = os.path.join(os.path.expanduser("."), "testdata", grc_radio_program_name + '.grc'))
         root = tree.getroot()
         for block in root.findall('block'):
             #      PARSING UHD_USRP_SINK BLOCK
@@ -366,24 +368,24 @@ class SecureGnuRadioModule(GnuRadioModule):
         #----------------------------------------------------------------------------------------------------------------------------------------------------------
         # Check if the user's programm follows the FCC's rules for UHD_USRP_SINK block
         if frequency_sink in UNII_low_band and actual_output_power_sink < MAX_UNII_low_band_indoor_output_power:
-            return super(SecureGnuRadioModule, self).set_active(kwargs)
+            return super(SecureGnuRadioModule, self).set_active(**kwargs)
         elif frequency_sink in UNII_2_middle_band and actual_output_power_sink < MAX_UNII_2_middle_band_output_power:
-            return super(SecureGnuRadioModule, self).set_active(kwargs)
+            return super(SecureGnuRadioModule, self).set_active(**kwargs)
         elif frequency_sink in UNII_2_extended_band and actual_output_power_sink < MAX_UNII_2_extended_band_output_power:
-            return super(SecureGnuRadioModule, self).set_active(kwargs)
+            return super(SecureGnuRadioModule, self).set_active(**kwargs)
         elif frequency_sink in UNII_3_upper_band and uhd_gain_sink < MAX_UNII_3_upper_band_antenna_gain:
-            return super(SecureGnuRadioModule, self).set_active(kwargs)
+            return super(SecureGnuRadioModule, self).set_active(**kwargs)
         else:
             self.log.warn('ERROR: Frequency and/or Power in UHD_USRP_SINK block not allowed')
         # Check if the user's programm follows the FCC's rules for UHD_USRP_SOURCE block
         if frequency_source in UNII_low_band and actual_output_power_source < MAX_UNII_low_band_indoor_output_power:
-            return super(SecureGnuRadioModule, self).set_active(kwargs)
+            return super(SecureGnuRadioModule, self).set_active(**kwargs)
         elif frequency_source in UNII_2_middle_band and actual_output_power_source < MAX_UNII_2_middle_band_output_power:
-            return super(SecureGnuRadioModule, self).set_active(kwargs)
+            return super(SecureGnuRadioModule, self).set_active(**kwargs)
         elif frequency_source in UNII_2_extended_band and actual_output_power_source < MAX_UNII_2_extended_band_output_power:
-            return super(SecureGnuRadioModule, self).set_active(kwargs)
+            return super(SecureGnuRadioModule, self).set_active(**kwargs)
         elif frequency_source in UNII_3_upper_band and uhd_gain_source < MAX_UNII_3_upper_band_antenna_gain:
-            return super(SecureGnuRadioModule, self).set_active(kwargs)
+            return super(SecureGnuRadioModule, self).set_active(**kwargs)
         else:
             self.log.warn('ERROR: Frequency and/or Power in UHD_USRP_SOURCE block not allowed')
 
@@ -391,82 +393,68 @@ class SecureGnuRadioModule(GnuRadioModule):
 
     @wishful_module.bind_function(upis.radio.set_inactive)
     def set_inactive(self, **kwargs):
+        pass
+     #TO COMPLETE
 
-        grc_radio_program_name = kwargs['grc_radio_program_name']
-        tree = ET.ElementTree(file= os.path.join(os.path.expanduser("."), "testdata", grc_radio_program_name))
-        root = tree.getroot()
-        for block in root.findall('block'):
-            #      PARSING UHD_USRP_SINK BLOCK
-            if block.findtext('key') == 'uhd_usrp_sink':
-                for param in block.findall('param'):
-                    for x in range(0, 32):
-                        #                  Frequency acquisition
-                        if param.findtext('key') == 'center_freq%s' % x and param.findtext('value') != '0':
-                            frequency_sink = float(param.findtext('value'))
-                            #                  Antenna Gain acquisition
-                        if param.findtext('key') == 'gain%s' % x and param.findtext('value') != '0':
-                            uhd_gain_sink = float(param.findtext('value'))
-                            #      PARSING UHD_USRP_SOURCE BLOCK
-            if block.findtext('key') == 'uhd_usrp_source':
-                for param in block.findall('param'):
-                    for x in range(0, 32):
-                        #                   Frequency acquisition
-                        if param.findtext('key') == 'center_freq%s' % x and param.findtext('value') != '0':
-                            frequency_source = float(param.findtext('value'))
-                            #                   Antenna Gain acquisition
-                        if param.findtext('key') == 'gain%s' % x and param.findtext('value') != '0':
-                            uhd_gain_source = float(param.findtext('value'))
-       
-        # --------------------------------------------------------------------------------------------------------------------------------------------------------
-        # LINK BETWEEN UHD GAIN SET BY THE USER AND THE EFFECTIVE OUTPUT POWER
-        # BASED ON THIS PAPER: An empirical model of the sbx daughterboard output power driven by USRP N210 adn GNURADIO - R. Zitouni, S.Ataman
-        # I've implemented their concepts to link the gain of the antenna on the sbx daughterboard and the effective output power
-        # ------------------------------------------------------------------------------------------------------------------------------------------------------
-        DAC_value = 1  
-        beta_zero = -5.586 * 10 ** (-3)
-        alpha_zero = 10 * log10(4.57)
-        # UHD_USRP_SINK BLOCK
-        P1 = 20 * log10(DAC_value) + uhd_gain_sink
-        actual_output_power_sink = P1 + alpha_zero + beta_zero * (frequency_sink / 10 ** (6))
-        # UHD_USRP_SOURCE BLOCK
-        P1 = 20 * log10(DAC_value) + uhd_gain_source
-        actual_output_power_source = P1 + alpha_zero + beta_zero * (frequency_source / 10 ** (6))
-        # ---------------------------------------------------------------------------------------------------------------------------------------------
-        # Check if the user's programm follows the FCC's rules for UHD_USRP_SINK block
-        if frequency_sink in UNII_low_band and actual_output_power_sink < MAX_UNII_low_band_indoor_output_power:
-            return super(SecureGnuRadioModule, self).set_inactive(kwargs)
-        elif frequency_sink in UNII_2_middle_band and actual_output_power_sink < MAX_UNII_2_middle_band_output_power:
-            return super(SecureGnuRadioModule, self).set_inactive(kwargs)
-        elif frequency_sink in UNII_2_extended_band and actual_output_power_sink < MAX_UNII_2_extended_band_output_power:
-            return super(SecureGnuRadioModule, self).set_inactive(kwargs)
-        elif frequency_sink in UNII_3_upper_band and uhd_gain_sink < MAX_UNII_3_upper_band_antenna_gain:
-            return super(SecureGnuRadioModule, self).set_inactive(kwargs)
-        else:
-            self.log.warn('ERROR: Frequency and/or Power in UHD_USRP_SINK block not allowed')
-        # Check if the user's programm follows the FCC's rules for UHD_USRP_SOURCE block
-        if frequency_source in UNII_low_band and actual_output_power_source < MAX_UNII_low_band_indoor_output_power:
-            return super(SecureGnuRadioModule, self).set_inactive(kwargs)
-        elif frequency_source in UNII_2_middle_band and actual_output_power_source < MAX_UNII_2_middle_band_output_power:
-            return super(SecureGnuRadioModule, self).set_inactive(kwargs)
-        elif frequency_source in UNII_2_extended_band and actual_output_power_source < MAX_UNII_2_extended_band_output_power:
-            return super(SecureGnuRadioModule, self).set_inactive(kwargs)
-        elif frequency_source in UNII_3_upper_band and uhd_gain_source < MAX_UNII_3_upper_band_antenna_gain:
-            return super(SecureGnuRadioModule, self).set_inactive(kwargs)
-        else:
-            self.log.warn('ERROR: Frequency and/or Power in UHD_USRP_SOURCE block not allowed')
 
 
 
     @wishful_module.bind_function(upis.radio.set_parameter_lower_layer)
     def gnuradio_set_vars(self, **kwargs):
+        pass
 
-        """ TODO: do some static checks here """
-        if True:
-            return super(SecureGnuRadioModule, self).gnuradio_set_vars(kwargs)
-        else:
-            self.log.warn('Not allowed ...')
+     # TO COMPLETE
+
+
+
+
 
 
     @wishful_module.bind_function(upis.radio.get_parameter_lower_layer)
     def gnuradio_get_vars(self, **kwargs):
-        return super(SecureGnuRadioModule, self).gnuradio_get_vars(kwargs)
+        gvals={}
+        if self.gr_state == RadioProgramState.RUNNING or self.gr_state == RadioProgramState.PAUSED:
+            rv = {}
+            self.init_proxy()
+            for k in kwargs.items():
+                #print(kwargs.items())
+                try:
+                 grc_radio_program_name = kwargs['grc_radio_program_name']
+                 tree = ET.ElementTree(file=os.path.join(os.path.expanduser("."), "testdata", grc_radio_program_name + '.grc'))
+                 root = tree.getroot()
+                 for block in root.findall('block'):
+                    #      PARSING UHD_USRP_SINK BLOCK
+                    if block.findtext('key') == 'uhd_usrp_sink':
+                        for param in block.findall('param'):
+                            for x in range(0, 32):
+                                #                  Frequency acquisition
+                                if param.findtext('key') == 'center_freq%s' % x and param.findtext('value') != '0':
+                                    frequency_sink = float(param.findtext('value'))
+                                    #                  Antenna Gain acquisition
+                                if param.findtext('key') == 'gain%s' % x and param.findtext('value') != '0':
+                                    uhd_gain_sink = float(param.findtext('value'))
+                                    #      PARSING UHD_USRP_SOURCE BLOCK
+                    if block.findtext('key') == 'uhd_usrp_source':
+                        for param in block.findall('param'):
+                            for x in range(0, 32):
+                                #                   Frequency acquisition
+                                if param.findtext('key') == 'center_freq%s' % x and param.findtext('value') != '0':
+                                    frequency_source = float(param.findtext('value'))
+                                    #                   Antenna Gain acquisition
+                                if param.findtext('key') == 'gain%s' % x and param.findtext('value') != '0':
+                                    uhd_gain_source = float(param.findtext('value'))
+                except Exception as e:
+                    self.log.error("Unknown variable '%s -> %s'" %(k,e))
+
+            gvals['frequency_sink']=frequency_sink
+            gvals['uhd_gain_sink']=uhd_gain_sink
+            gvals['frequency_source']=frequency_source
+            gvals['uhd_gain_source']=uhd_gain_source
+            return gvals
+
+        else:
+            self.log.warn("no running or paused radio program; ignore command")
+            return None
+
+
+
