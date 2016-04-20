@@ -9,10 +9,12 @@ if __name__ == '__main__':
     #print(grc_xml)
     inval = {}
     inval['ID'] = 11
-    inval['grc_radio_program_name'] = 'test_TX.grc'
+    inval['grc_radio_program_name'] = 'test_TX'
     inval['grc_radio_program_code'] = grc_xml
-    #print(inval.get('grc_radio_program_name'))
-    #print(inval.get('grc_radio_program_code'))
-
 
     grm.set_active(**inval)
+    time.sleep(2)
+    if True:
+     res = grm.gnuradio_get_vars(**inval)
+     print(res)
+
