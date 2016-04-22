@@ -328,24 +328,18 @@ class SecureGnuRadioModule(GnuRadioModule):
         tree = ET.ElementTree(file = os.path.join(os.path.expanduser("."), "testdata", grc_radio_program_name + '.grc'))
         root = tree.getroot()
         for block in root.findall('block'):
-            #      PARSING UHD_USRP_SINK BLOCK
             if block.findtext('key') == 'uhd_usrp_sink':
                 for param in block.findall('param'):
                     for x in range(0, 32):
-                        #                  Frequency acquisition
                         if param.findtext('key') == 'center_freq%s' % x and param.findtext('value') != '0':
                             frequency_sink = float(param.findtext('value'))
-                            #                  Antenna Gain acquisition
                         if param.findtext('key') == 'gain%s' % x and param.findtext('value') != '0':
                             uhd_gain_sink = float(param.findtext('value'))
-                            #      PARSING UHD_USRP_SOURCE BLOCK
             if block.findtext('key') == 'uhd_usrp_source':
                 for param in block.findall('param'):
                     for x in range(0, 32):
-                        #                   Frequency acquisition
                         if param.findtext('key') == 'center_freq%s' % x and param.findtext('value') != '0':
                             frequency_source = float(param.findtext('value'))
-                            #                   Antenna Gain acquisition
                         if param.findtext('key') == 'gain%s' % x and param.findtext('value') != '0':
                             uhd_gain_source = float(param.findtext('value'))
        
@@ -401,14 +395,34 @@ class SecureGnuRadioModule(GnuRadioModule):
 
     @wishful_module.bind_function(upis.radio.set_parameter_lower_layer)
     def gnuradio_set_vars(self, **kwargs):
-        pass
 
-     # TO COMPLETE
+        if self.gr_state == RadioProgramState.RUNNING or self.gr_state == RadioProgramState.PAUSED:
+                try:
+                    grc_radio_program_name = kwargs['grc_radio_program_name']
+                    root = ET.ElementTree(file=os.path.join(os.path.expanduser("."), "testdata", grc_radio_program_name + '.grc')).getroot()
+                    for block in root.findall('block'):
+                        if block.findtext('key') == 'uhd_usrp_sink':
+                            for param in block.findall('param'):
+                                for x in range(0, 32):
+                                    if param.findtext('key') == 'center_freq%s' % x and param.findtext('value') != '0':
+                                        param.find('value').text = kwargs['frequency_sink_update']
+                                    if param.findtext('key') == 'gain%s' % x and param.findtext('value') != '0':
+                                        param.find('value').text = kwargs['uhd_gain_sink_update']
+                        if block.findtext('key') == 'uhd_usrp_source':
+                            for param in block.findall('param'):
+                                for x in range(0, 32):
+                                    if param.findtext('key') == 'center_freq%s' % x and param.findtext('value') != '0':
+                                        param.find('value').text = kwargs['frequency_source_update']
+                                    if param.findtext('key') == 'gain%s' % x and param.findtext('value') != '0':
+                                        param.find('value').text = kwargs['uhd_gain_source_update']
+                    tree = ET.ElementTree(root)
+                    tree.write(os.path.join(os.path.expanduser("."), "testdata", grc_radio_program_name + '.grc'))
 
-
-
-
-
+                except Exception as e:
+                    self.log.error("Unknown variable '%s -> %s'" )
+        else:
+            self.log.warn("no running or paused radio program; ignore command")
+            return None
 
     @wishful_module.bind_function(upis.radio.get_parameter_lower_layer)
     def gnuradio_get_vars(self, **kwargs):
@@ -417,30 +431,23 @@ class SecureGnuRadioModule(GnuRadioModule):
             rv = {}
             self.init_proxy()
             for k in kwargs.items():
-                #print(kwargs.items())
                 try:
                  grc_radio_program_name = kwargs['grc_radio_program_name']
                  tree = ET.ElementTree(file=os.path.join(os.path.expanduser("."), "testdata", grc_radio_program_name + '.grc'))
                  root = tree.getroot()
                  for block in root.findall('block'):
-                    #      PARSING UHD_USRP_SINK BLOCK
                     if block.findtext('key') == 'uhd_usrp_sink':
                         for param in block.findall('param'):
                             for x in range(0, 32):
-                                #                  Frequency acquisition
                                 if param.findtext('key') == 'center_freq%s' % x and param.findtext('value') != '0':
                                     frequency_sink = float(param.findtext('value'))
-                                    #                  Antenna Gain acquisition
                                 if param.findtext('key') == 'gain%s' % x and param.findtext('value') != '0':
                                     uhd_gain_sink = float(param.findtext('value'))
-                                    #      PARSING UHD_USRP_SOURCE BLOCK
                     if block.findtext('key') == 'uhd_usrp_source':
                         for param in block.findall('param'):
                             for x in range(0, 32):
-                                #                   Frequency acquisition
                                 if param.findtext('key') == 'center_freq%s' % x and param.findtext('value') != '0':
                                     frequency_source = float(param.findtext('value'))
-                                    #                   Antenna Gain acquisition
                                 if param.findtext('key') == 'gain%s' % x and param.findtext('value') != '0':
                                     uhd_gain_source = float(param.findtext('value'))
                 except Exception as e:
