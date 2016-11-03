@@ -287,7 +287,7 @@ class RadioProgramCombiner():
 
 if __name__ == '__main__':
 
-    #gr_radio_programs_path = os.path.join(os.path.expanduser("~"), ".wishful", "radio")
+    #gr_radio_programs_path = os.path.join(os.path.expanduser("~"), ".uniflex", "radio")
     gr_radio_programs_path = "../testdata/"
 
     combiner = RadioProgramCombiner(gr_radio_programs_path)

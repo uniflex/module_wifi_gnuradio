@@ -12,7 +12,7 @@ if __name__ == '__main__':
 
     gr_process_io = {'stdout': open('/tmp/gnuradio.log', 'w+'), 'stderr': open('/tmp/gnuradio-err.log', 'w+')}
 
-    gr_process = subprocess.Popen(["env", "python2", '/home/wifi/.wishful/radio/test/top_block.py'],
+    gr_process = subprocess.Popen(["env", "python2", '/home/wifi/.uniflex/radio/test/top_block.py'],
                                   stdout=gr_process_io['stdout'], stderr=gr_process_io['stderr'])
 
     time.sleep(1)

@@ -1,9 +1,7 @@
-WiSHFUL Agent Module - GNU Radio
+UniFlex Agent Module - WiFi @ GNU Radio
 ============================
 
-This is a prototypic implementation of a wireless agent providing the Unified
-Programming Interfaces (UPIs) of the Wishful software platform for
-radio and network control.
+UniFlex Device Module for WiFi GnuRadio implementation
 
 ## Acknowledgement
 

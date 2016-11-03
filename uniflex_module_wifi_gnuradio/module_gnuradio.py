@@ -1,16 +1,16 @@
 import os
-import time
-import logging
-import random
-import wishful_upis as upis
-import wishful_framework as wishful_module
-import subprocess
 import pprint
-import xmlrpc.client
+import logging
+import subprocess
 from enum import Enum
-import xml.etree.ElementTree as ET
 from numpy import arange
 from numpy import log10
+import xmlrpc.client
+import xml.etree.ElementTree as ET
+from generator.rp_combiner import RadioProgramCombiner
+
+import wishful_upis as upis
+from uniflex.core import modules
 
 # GLOBAL VARIABLES DEFINITION
 
@@ -23,7 +23,6 @@ MAX_UNII_2_middle_band_output_power = 23                                        
 MAX_UNII_2_extended_band_output_power = 23                                      # power limited to 23 dBm in both indoor and outdoor use
 MAX_UNII_3_upper_band_antenna_gain = 23                                         # antenna gain limited to 23 dBi
 
-from generator.rp_combiner import RadioProgramCombiner
 
 __author__ = "A. Zubow"
 __author__ = "F. Di Stolfa"
@@ -43,17 +42,17 @@ class RadioProgramState(Enum):
 """
     Basic GNURadio connector module.
 """
-@wishful_module.build_module
-class GnuRadioModule(wishful_module.AgentModule):
+@modules.build_module
+class WiFiGnuRadioModule(modules.AgentModule):
     def __init__(self):
-        super(GnuRadioModule, self).__init__()
+        super(WiFiGnuRadioModule, self).__init__()
 
         self.log = logging.getLogger('gnuradio_module.main')
 
         self.gr_radio_programs = {}
         self.gr_process = None
         self.gr_process_io = None
-        self.gr_radio_programs_path = os.path.join(os.path.expanduser("~"), ".wishful", "radio")
+        self.gr_radio_programs_path = os.path.join(os.path.expanduser("~"), ".uniflex", "radio")
         if not os.path.exists(self.gr_radio_programs_path):
             os.makedirs(self.gr_radio_programs_path)
             self.build_radio_program_dict()
@@ -69,7 +68,7 @@ class GnuRadioModule(wishful_module.AgentModule):
         self.log.debug('initialized ...')
 
 
-    @wishful_module.bind_function(upis.radio.add_program)
+    @modules.bind_function(upis.radio.add_program)
     def add_program(self, **kwargs):
         """ Serialize radio program to local repository """
 
@@ -89,7 +88,7 @@ class GnuRadioModule(wishful_module.AgentModule):
         self.build_radio_program_dict()
 
 
-    @wishful_module.bind_function(upis.radio.merge_programs)
+    @modules.bind_function(upis.radio.merge_programs)
     def merge_programs(self, **kwargs):
         '''
             Given a set of Gnuradio programs (described as GRC flowgraph) this program combines all
@@ -118,7 +117,7 @@ class GnuRadioModule(wishful_module.AgentModule):
         return rp_fname
 
 
-    @wishful_module.bind_function(upis.radio.switch_program)
+    @modules.bind_function(upis.radio.switch_program)
     def switch_program(self, target_program_name, **kwargs):
         '''
             Run-time control of meta radio program which allows very fast switching from
@@ -151,7 +150,7 @@ class GnuRadioModule(wishful_module.AgentModule):
         getattr(proxy, "set_session_var")(init_session_value)
 
 
-    @wishful_module.bind_function(upis.radio.remove_program)
+    @modules.bind_function(upis.radio.remove_program)
     def remove_program(self, **kwargs):
         """ Remove radio program from local repository """
 
@@ -163,7 +162,7 @@ class GnuRadioModule(wishful_module.AgentModule):
             os.remove(os.path.join(self.gr_radio_programs_path, grc_radio_program_name + '.grc'))
 
 
-    @wishful_module.bind_function(upis.radio.set_active)
+    @modules.bind_function(upis.radio.set_active)
     def set_active(self, **kwargs):
 
         # params
@@ -209,7 +208,7 @@ class GnuRadioModule(wishful_module.AgentModule):
             self.log.warn('Please deactive old radio program before activating a new one.')
 
 
-    @wishful_module.bind_function(upis.radio.set_inactive)
+    @modules.bind_function(upis.radio.set_inactive)
     def set_inactive(self, **kwargs):
 
         pause_rp =  bool(kwargs['do_pause'])
@@ -240,7 +239,7 @@ class GnuRadioModule(wishful_module.AgentModule):
             self.log.warn("no running or paused radio program; ignore command")
 
 
-    @wishful_module.bind_function(upis.radio.set_parameter_lower_layer)
+    @modules.bind_function(upis.radio.set_parameter_lower_layer)
     def gnuradio_set_vars(self, **kwargs):
         if self.gr_state == RadioProgramState.RUNNING or self.gr_state == RadioProgramState.PAUSED:
             self.init_proxy()
@@ -253,7 +252,7 @@ class GnuRadioModule(wishful_module.AgentModule):
             self.log.warn("no running or paused radio program; ignore command")
 
 
-    @wishful_module.bind_function(upis.radio.get_parameter_lower_layer)
+    @modules.bind_function(upis.radio.get_parameter_lower_layer)
     def gnuradio_get_vars(self, **kwargs):
         if self.gr_state == RadioProgramState.RUNNING or self.gr_state == RadioProgramState.PAUSED:
             rv = {}
@@ -309,159 +308,3 @@ class GnuRadioModule(wishful_module.AgentModule):
     def init_proxy(self):
         if self.ctrl_socket == None:
             self.ctrl_socket = xmlrpc.client.ServerProxy("http://%s:%d" % (self.ctrl_socket_host, self.ctrl_socket_port))
-
-"""
-    Secure GNURadio connector module which checks whether configuration meets regulation requirements, i.e. used frequency,
-    transmit power, ...
-"""
-
-class SecureGnuRadioModule(GnuRadioModule):
-    def __init__(self):
-        super(SecureGnuRadioModule, self).__init__()
-        self.log = logging.getLogger('SecureGnuRadioModule')
-
-
-    @wishful_module.bind_function(upis.radio.set_active)
-    def set_active(self, **kwargs):
-
-        grc_radio_program_name = kwargs['grc_radio_program_name']
-        tree = ET.ElementTree(file = os.path.join(os.path.expanduser("."), "testdata", grc_radio_program_name + '.grc'))
-        root = tree.getroot()
-        for block in root.findall('block'):
-            if block.findtext('key') == 'uhd_usrp_sink':
-                for param in block.findall('param'):
-                    for x in range(0, 32):
-                        if param.findtext('key') == 'center_freq%s' % x and param.findtext('value') != '0':
-                            frequency_sink = float(param.findtext('value'))
-                        if param.findtext('key') == 'gain%s' % x and param.findtext('value') != '0':
-                            uhd_gain_sink = float(param.findtext('value'))
-            if block.findtext('key') == 'uhd_usrp_source':
-                for param in block.findall('param'):
-                    for x in range(0, 32):
-                        if param.findtext('key') == 'center_freq%s' % x and param.findtext('value') != '0':
-                            frequency_source = float(param.findtext('value'))
-                        if param.findtext('key') == 'gain%s' % x and param.findtext('value') != '0':
-                            uhd_gain_source = float(param.findtext('value'))
-       
-        #--------------------------------------------------------------------------------------------------------------------------------------------------------
-        # LINK BETWEEN UHD GAIN SET BY THE USER AND THE EFFECTIVE OUTPUT POWER
-        # BASED ON THIS PAPER: An empirical model of the sbx daughterboard output power driven by USRP N210 adn GNURADIO - R. Zitouni, S.Ataman
-        # I've implemented their concepts to link the gain of the antenna on the sbx daughterboard and the effective output power
-        #------------------------------------------------------------------------------------------------------------------------------------------------------
-        DAC_value = 1                                                     
-        beta_zero = -5.586*10**(-3)
-        alpha_zero = 10*log10(4.57)
-        # UHD_USRP_SINK BLOCK
-        P1 = 20*log10(DAC_value) + uhd_gain_sink
-        actual_output_power_sink = P1 + alpha_zero + beta_zero*(frequency_sink/10**(6))
-        
-        # UHD_USRP_SOURCE BLOCK
-        P1 = 20*log10(DAC_value) + uhd_gain_source
-        actual_output_power_source = P1 + alpha_zero + beta_zero*(frequency_source/10**(6))
-        
-        #----------------------------------------------------------------------------------------------------------------------------------------------------------
-        # Check if the user's programm follows the FCC's rules for UHD_USRP_SINK block
-        if frequency_sink in UNII_low_band and actual_output_power_sink < MAX_UNII_low_band_indoor_output_power:
-            return super(SecureGnuRadioModule, self).set_active(**kwargs)
-        elif frequency_sink in UNII_2_middle_band and actual_output_power_sink < MAX_UNII_2_middle_band_output_power:
-            return super(SecureGnuRadioModule, self).set_active(**kwargs)
-        elif frequency_sink in UNII_2_extended_band and actual_output_power_sink < MAX_UNII_2_extended_band_output_power:
-            return super(SecureGnuRadioModule, self).set_active(**kwargs)
-        elif frequency_sink in UNII_3_upper_band and uhd_gain_sink < MAX_UNII_3_upper_band_antenna_gain:
-            return super(SecureGnuRadioModule, self).set_active(**kwargs)
-        else:
-            self.log.warn('ERROR: Frequency and/or Power in UHD_USRP_SINK block not allowed')
-        # Check if the user's programm follows the FCC's rules for UHD_USRP_SOURCE block
-        if frequency_source in UNII_low_band and actual_output_power_source < MAX_UNII_low_band_indoor_output_power:
-            return super(SecureGnuRadioModule, self).set_active(**kwargs)
-        elif frequency_source in UNII_2_middle_band and actual_output_power_source < MAX_UNII_2_middle_band_output_power:
-            return super(SecureGnuRadioModule, self).set_active(**kwargs)
-        elif frequency_source in UNII_2_extended_band and actual_output_power_source < MAX_UNII_2_extended_band_output_power:
-            return super(SecureGnuRadioModule, self).set_active(**kwargs)
-        elif frequency_source in UNII_3_upper_band and uhd_gain_source < MAX_UNII_3_upper_band_antenna_gain:
-            return super(SecureGnuRadioModule, self).set_active(**kwargs)
-        else:
-            self.log.warn('ERROR: Frequency and/or Power in UHD_USRP_SOURCE block not allowed')
-
-
-
-    @wishful_module.bind_function(upis.radio.set_inactive)
-    def set_inactive(self, **kwargs):
-        pass
-     #TO COMPLETE
-
-
-
-
-    @wishful_module.bind_function(upis.radio.set_parameter_lower_layer)
-    def gnuradio_set_vars(self, **kwargs):
-
-        if self.gr_state == RadioProgramState.RUNNING or self.gr_state == RadioProgramState.PAUSED:
-                try:
-                    grc_radio_program_name = kwargs['grc_radio_program_name']
-                    root = ET.ElementTree(file=os.path.join(os.path.expanduser("."), "testdata", grc_radio_program_name + '.grc')).getroot()
-                    for block in root.findall('block'):
-                        if block.findtext('key') == 'uhd_usrp_sink':
-                            for param in block.findall('param'):
-                                for x in range(0, 32):
-                                    if param.findtext('key') == 'center_freq%s' % x and param.findtext('value') != '0':
-                                        param.find('value').text = kwargs['frequency_sink_update']
-                                    if param.findtext('key') == 'gain%s' % x and param.findtext('value') != '0':
-                                        param.find('value').text = kwargs['uhd_gain_sink_update']
-                        if block.findtext('key') == 'uhd_usrp_source':
-                            for param in block.findall('param'):
-                                for x in range(0, 32):
-                                    if param.findtext('key') == 'center_freq%s' % x and param.findtext('value') != '0':
-                                        param.find('value').text = kwargs['frequency_source_update']
-                                    if param.findtext('key') == 'gain%s' % x and param.findtext('value') != '0':
-                                        param.find('value').text = kwargs['uhd_gain_source_update']
-                    tree = ET.ElementTree(root)
-                    tree.write(os.path.join(os.path.expanduser("."), "testdata", grc_radio_program_name + '.grc'))
-
-                except Exception as e:
-                    self.log.error("Unknown variable '%s -> %s'" )
-        else:
-            self.log.warn("no running or paused radio program; ignore command")
-            return None
-
-    @wishful_module.bind_function(upis.radio.get_parameter_lower_layer)
-    def gnuradio_get_vars(self, **kwargs):
-        gvals={}
-        if self.gr_state == RadioProgramState.RUNNING or self.gr_state == RadioProgramState.PAUSED:
-            rv = {}
-            self.init_proxy()
-            for k in kwargs.items():
-                try:
-                 grc_radio_program_name = kwargs['grc_radio_program_name']
-                 tree = ET.ElementTree(file=os.path.join(os.path.expanduser("."), "testdata", grc_radio_program_name + '.grc'))
-                 root = tree.getroot()
-                 for block in root.findall('block'):
-                    if block.findtext('key') == 'uhd_usrp_sink':
-                        for param in block.findall('param'):
-                            for x in range(0, 32):
-                                if param.findtext('key') == 'center_freq%s' % x and param.findtext('value') != '0':
-                                    frequency_sink = float(param.findtext('value'))
-                                if param.findtext('key') == 'gain%s' % x and param.findtext('value') != '0':
-                                    uhd_gain_sink = float(param.findtext('value'))
-                    if block.findtext('key') == 'uhd_usrp_source':
-                        for param in block.findall('param'):
-                            for x in range(0, 32):
-                                if param.findtext('key') == 'center_freq%s' % x and param.findtext('value') != '0':
-                                    frequency_source = float(param.findtext('value'))
-                                if param.findtext('key') == 'gain%s' % x and param.findtext('value') != '0':
-                                    uhd_gain_source = float(param.findtext('value'))
-                except Exception as e:
-                    self.log.error("Unknown variable '%s -> %s'" %(k,e))
-
-            gvals['frequency_sink']=frequency_sink
-            gvals['uhd_gain_sink']=uhd_gain_sink
-            gvals['frequency_source']=frequency_source
-            gvals['uhd_gain_source']=uhd_gain_source
-            return gvals
-
-        else:
-            self.log.warn("no running or paused radio program; ignore command")
-            return None
-
-
-
