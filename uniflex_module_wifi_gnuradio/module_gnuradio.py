@@ -9,7 +9,6 @@ import xmlrpc.client
 import xml.etree.ElementTree as ET
 from generator.rp_combiner import RadioProgramCombiner
 
-import wishful_upis as upis
 from uniflex.core import modules
 
 # GLOBAL VARIABLES DEFINITION
@@ -32,17 +31,20 @@ __email__ = "{zubow}@tkn.tu-berlin.de"
 __email__ = "{distolfa}@tkn.tu-berlin.de"
 
 
-""" tracking the state of the radio program """
 class RadioProgramState(Enum):
+    """
+    Tracking the state of the radio program
+    """
     INACTIVE = 1
     RUNNING = 2
     PAUSED = 3
     STOPPED = 4
 
-"""
-    Basic GNURadio connector module.
-"""
+
 class WiFiGnuRadioModule(modules.DeviceModule):
+    """
+        Basic GNURadio connector module.
+    """
     def __init__(self):
         super(WiFiGnuRadioModule, self).__init__()
 
@@ -66,8 +68,6 @@ class WiFiGnuRadioModule(modules.DeviceModule):
         self.combiner = None
         self.log.debug('initialized ...')
 
-
-    @modules.bind_function(upis.radio.add_program)
     def add_program(self, **kwargs):
         """ Serialize radio program to local repository """
 
@@ -86,8 +86,6 @@ class WiFiGnuRadioModule(modules.DeviceModule):
         # rebuild radio program dictionary
         self.build_radio_program_dict()
 
-
-    @modules.bind_function(upis.radio.merge_programs)
     def merge_programs(self, **kwargs):
         '''
             Given a set of Gnuradio programs (described as GRC flowgraph) this program combines all
@@ -115,8 +113,6 @@ class WiFiGnuRadioModule(modules.DeviceModule):
 
         return rp_fname
 
-
-    @modules.bind_function(upis.radio.switch_program)
     def switch_program(self, target_program_name, **kwargs):
         '''
             Run-time control of meta radio program which allows very fast switching from
@@ -148,8 +144,6 @@ class WiFiGnuRadioModule(modules.DeviceModule):
         self.log.info('Switch to protocol %d with cfg %s' % (new_proto_idx, str(init_session_value)))
         getattr(proxy, "set_session_var")(init_session_value)
 
-
-    @modules.bind_function(upis.radio.remove_program)
     def remove_program(self, **kwargs):
         """ Remove radio program from local repository """
 
@@ -160,8 +154,6 @@ class WiFiGnuRadioModule(modules.DeviceModule):
             os.rmdir(os.path.join(self.gr_radio_programs_path, grc_radio_program_name))
             os.remove(os.path.join(self.gr_radio_programs_path, grc_radio_program_name + '.grc'))
 
-
-    @modules.bind_function(upis.radio.set_active)
     def set_active(self, **kwargs):
 
         # params
@@ -206,8 +198,6 @@ class WiFiGnuRadioModule(modules.DeviceModule):
         else:
             self.log.warn('Please deactive old radio program before activating a new one.')
 
-
-    @modules.bind_function(upis.radio.set_inactive)
     def set_inactive(self, **kwargs):
 
         pause_rp =  bool(kwargs['do_pause'])
@@ -237,8 +227,6 @@ class WiFiGnuRadioModule(modules.DeviceModule):
         else:
             self.log.warn("no running or paused radio program; ignore command")
 
-
-    @modules.bind_function(upis.radio.set_parameter_lower_layer)
     def gnuradio_set_vars(self, **kwargs):
         if self.gr_state == RadioProgramState.RUNNING or self.gr_state == RadioProgramState.PAUSED:
             self.init_proxy()
@@ -250,8 +238,6 @@ class WiFiGnuRadioModule(modules.DeviceModule):
         else:
             self.log.warn("no running or paused radio program; ignore command")
 
-
-    @modules.bind_function(upis.radio.get_parameter_lower_layer)
     def gnuradio_get_vars(self, **kwargs):
         if self.gr_state == RadioProgramState.RUNNING or self.gr_state == RadioProgramState.PAUSED:
             rv = {}
