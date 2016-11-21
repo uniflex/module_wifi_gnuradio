@@ -1,12 +1,4 @@
-import os
-import pprint
 import logging
-import subprocess
-from enum import Enum
-from numpy import arange
-import xmlrpc.client
-
-from uniflex.core import modules
 import uniflex_module_gnuradio
 
 __author__ = "Anatolij Zubow"
@@ -38,5 +30,5 @@ class WiFiGnuRadioModule(uniflex_module_gnuradio.GnuRadioModule):
 
         inval = {}
         inval['freq'] = 5200
-
+        # delegate to generic function
         self.set_parameters(inval)
