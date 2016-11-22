@@ -1,10 +1,13 @@
 UniFlex Agent Module - WiFi @ GNU Radio
 ============================
 
-UniFlex Device Module for WiFi GnuRadio implementation
+UniFlex Device Module for WiFi GnuRadio implementation.
 
 ## Installation:
 To install UniFlex framework with all available modules, please go through all steps in [manifest](https://github.com/uniflex/manifests) repository.
+
+The implementation is based on the source code from: [gr-ieee802-11](https://github.com/bastibl/gr-ieee802-11).
+Please install gr-ieee802-11 libraries before using UniFlex.
 
 ## Acknowledgement
 
