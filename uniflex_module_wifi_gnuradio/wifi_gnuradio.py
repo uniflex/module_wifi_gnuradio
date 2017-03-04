@@ -3,6 +3,7 @@ import logging
 from enum import Enum
 import pyric.utils.channels as channels
 import uniflex_module_gnuradio
+from uniflex.core import modules
 
 __author__ = "Anatolij Zubow"
 __copyright__ = "Copyright (c) 2015, Technische Universität Berlin"
@@ -33,10 +34,25 @@ class WiFiGnuRadioModule(uniflex_module_gnuradio.GnuRadioModule):
     """
         WiFI GNURadio connector module.
     """
-    def __init__(self):
-        super(WiFiGnuRadioModule, self).__init__()
+    def __init__(self, usrp_addr="addr=192.168.30.2", ctrl_socket_host="localhost", ctrl_socket_port=8080):
+        super(WiFiGnuRadioModule, self).__init__(usrp_addr, ctrl_socket_host, ctrl_socket_port)
 
         self.log = logging.getLogger('WiFiGnuRadioModule')
+
+        self.uniflex_path = os.environ['UNIFLEX_PATH']
+        self.fid = open(os.path.join(self.uniflex_path, "modules", "wifi_gnuradio", "gr_scripts", "uniflex_wifi_transceiver.grc"))
+        self.grc_xml = self.fid.read()
+
+        self.grc_radio_program_name = 'uniflex_wifi_transceiver'
+
+    @modules.on_start()
+    def _activate_rp(self):
+        self.log.info('Activate GR80211 radio program')
+        self.activate_radio_program(self.grc_radio_program_name, self.grc_xml)
+
+    def deactivate_radio_program(self, grc_radio_program_name=None, do_pause=False):
+        # override
+        super(WiFiGnuRadioModule, self).deactivate_radio_program(self.grc_radio_program_name, False)
 
     def set_channel(self, channel, ifaceName):
         # convert channel to freq
