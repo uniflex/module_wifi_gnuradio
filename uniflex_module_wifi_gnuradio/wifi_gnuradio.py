@@ -86,11 +86,11 @@ class WiFiGnuRadioModule(uniflex_module_gnuradio.GnuRadioModule):
         sh.ifconfig(tapIface, self.src_ipv4_address, "netmask", "255.255.255.0", "up")
 
         # configure routing
-        sh.ifconfig("route", "del", "-net", "192.168.123.0/24")
-        sh.ifconfig("route", "add", "-net", "192.168.123.0/24", "mss", "400", "dev", tapIface)
+        sh.route("del", "-net", "192.168.123.0/24")
+        sh.route("add", "-net", "192.168.123.0/24", "mss", "400", "dev", tapIface)
 
         # configure arp
-        sh.ifconfig("arp", "-s", self.dst_ipv4_address, self.dst_mac)
+        sh.arp("-s", self.dst_ipv4_address, self.dst_mac)
 
     def deactivate_radio_program(self, grc_radio_program_name=None, do_pause=False):
         # override
