@@ -78,9 +78,9 @@ class WiFiGnuRadioModule(uniflex_module_gnuradio.GnuRadioModule):
             except sh.ErrorReturnCode_1:
                 self.log.debug("Waiting for device: {}".format(tapIface))
 
-        #self.set_src_mac(self.src_mac)
-        #self.set_dst_mac(self.dst_mac)
-        #self.set_bss_mac(self.bss_mac)
+        self.set_src_mac(self.src_mac)
+        self.set_dst_mac(self.dst_mac)
+        self.set_bss_mac(self.bss_mac)
 
         # configure interface
         sh.ifconfig(tapIface, "down")
