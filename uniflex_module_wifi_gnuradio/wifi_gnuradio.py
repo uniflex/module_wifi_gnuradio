@@ -66,11 +66,19 @@ class WiFiGnuRadioModule(uniflex_module_gnuradio.GnuRadioModule):
         self.log.info('Activate GR80211 radio program')
         self.activate_radio_program(self.grc_radio_program_name, self.grc_xml)
 
-        self.set_src_mac(self.src_mac)
-        self.set_dst_mac(self.dst_mac)
-        self.set_bss_mac(self.bss_mac)
 
         tapIface = "tap0"
+        while True:
+            try:
+                sh.ifconfig(tapIface)
+                break
+            except sh.ErrorReturnCode_1:
+                self.log.debug("Waiting for device: {}".format(tapIface))
+
+        #self.set_src_mac(self.src_mac)
+        #self.set_dst_mac(self.dst_mac)
+        #self.set_bss_mac(self.bss_mac)
+
         # configure interface
         sh.ifconfig(tapIface, "down")
         sh.ifconfig(tapIface, "hw", "ether", self.src_mac)
