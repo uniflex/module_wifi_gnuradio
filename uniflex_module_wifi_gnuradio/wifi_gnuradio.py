@@ -1,14 +1,15 @@
 import os
+import sh
 import logging
 from enum import Enum
 import pyric.utils.channels as channels
 import uniflex_module_gnuradio
 from uniflex.core import modules
 
-__author__ = "Anatolij Zubow"
+__author__ = "Anatolij Zubow, Piotr Gawlowicz"
 __copyright__ = "Copyright (c) 2015, Technische Universität Berlin"
 __version__ = "0.1.0"
-__email__ = "{zubow}@tkn.tu-berlin.de"
+__email__ = "{zubow, gawlowicz}@tkn.tu-berlin.de"
 
 
 """
@@ -34,7 +35,15 @@ class WiFiGnuRadioModule(uniflex_module_gnuradio.GnuRadioModule):
     """
         WiFI GNURadio connector module.
     """
-    def __init__(self, usrp_addr="addr=192.168.30.2", ctrl_socket_host="localhost", ctrl_socket_port=8080):
+    def __init__(self, usrp_addr="addr=192.168.30.2",
+                 ctrl_socket_host="localhost",
+                 ctrl_socket_port=8080,
+                 src_mac="12:34:56:78:90:ab",
+                 dst_mac="30:14:4a:e6:46:e4",
+                 bss_mac="66:66:66:66:66:66",
+                 src_ipv4_address="192.168.123.1",
+                 dst_ipv4_address="192.168.123.2"):
+
         super(WiFiGnuRadioModule, self).__init__(usrp_addr, ctrl_socket_host, ctrl_socket_port)
 
         self.log = logging.getLogger('WiFiGnuRadioModule')
@@ -45,10 +54,35 @@ class WiFiGnuRadioModule(uniflex_module_gnuradio.GnuRadioModule):
 
         self.grc_radio_program_name = 'uniflex_wifi_transceiver'
 
+        # WiFi Configuration
+        self.src_mac = src_mac
+        self.dst_mac = dst_mac
+        self.bss_mac = bss_mac
+        self.src_ipv4_address = src_ipv4_address
+        self.dst_ipv4_address = dst_ipv4_address
+
     @modules.on_start()
     def _activate_rp(self):
         self.log.info('Activate GR80211 radio program')
         self.activate_radio_program(self.grc_radio_program_name, self.grc_xml)
+
+        self.set_src_mac(self.src_mac)
+        self.set_dst_mac(self.dst_mac)
+        self.set_bss_mac(self.bss_mac)
+
+        tapIface = "tap0"
+        # configure interface
+        sh.ifconfig(tapIface, "down")
+        sh.ifconfig(tapIface, "hw", "ether", self.src_mac)
+        sh.ifconfig(tapIface, "mtu", 440)
+        sh.ifconfig(tapIface, self.src_ipv4_address, "netmask", "255.255.255.0", "up")
+
+        # configure routing
+        sh.ifconfig("route", "del", "-net", "192.168.123.0/24")
+        sh.ifconfig("route", "add", "-net", "192.168.123.0/24", "mss", "400", "dev", tapIface)
+
+        # configure arp
+        sh.ifconfig("arp", "-s", self.dst_ipv4_address, self.dst_mac)
 
     def deactivate_radio_program(self, grc_radio_program_name=None, do_pause=False):
         # override
@@ -140,7 +174,6 @@ class WiFiGnuRadioModule(uniflex_module_gnuradio.GnuRadioModule):
         # delegate to generic function
         self.set_parameters(inval)
 
-
     def get_rx_gain(self, ifaceName):
         self.log.debug("getting rx gain of interface: {}".format(ifaceName))
 
@@ -152,3 +185,45 @@ class WiFiGnuRadioModule(uniflex_module_gnuradio.GnuRadioModule):
         rx_gain_dBm = rx_gain
 
         return rx_gain_dBm
+
+    def _convert_mac(self, mac):
+        return str(list(map(lambda x: hex(int(x, 16)), mac.split(":"))))
+
+    def set_src_mac(self, mac_addr, ifaceName=None):
+        self.log.info('Set SRC MAC address to {}'.format(mac_addr))
+        mac_addr = self._convert_mac(mac_addr)
+        inval = {}
+        inval['src_mac'] = mac_addr
+        self.set_parameters(inval)
+
+    def get_src_mac(self, ifaceName=None):
+        self.log.info('Get SRC MAC address')
+        gvals = ['src_mac']
+        src_mac = self.get_parameters(gvals)
+        return src_mac
+
+    def set_dst_mac(self, mac_addr, ifaceName=None):
+        self.log.info('Set DST MAC address to {}'.format(mac_addr))
+        mac_addr = self._convert_mac(mac_addr)
+        inval = {}
+        inval['dst_mac'] = mac_addr
+        self.set_parameters(inval)
+
+    def get_dst_mac(self, ifaceName=None):
+        self.log.info('Get DST MAC address')
+        gvals = ['dst_mac']
+        dst_mac = self.get_parameters(gvals)
+        return dst_mac
+
+    def set_bss_mac(self, mac_addr, ifaceName=None):
+        self.log.info('Set BSS MAC address to {}'.format(mac_addr))
+        mac_addr = self._convert_mac(mac_addr)
+        inval = {}
+        inval['bss_mac'] = mac_addr
+        self.set_parameters(inval)
+
+    def get_bss_mac(self, ifaceName=None):
+        self.log.info('Get BSS MAC address')
+        gvals = ['bss_mac']
+        bss_mac = self.get_parameters(gvals)
+        return bss_mac
