@@ -61,6 +61,9 @@ class WiFiGnuRadioModule(uniflex_module_gnuradio.GnuRadioModule):
         self.src_ipv4_address = src_ipv4_address
         self.dst_ipv4_address = dst_ipv4_address
 
+        sh_logger = logging.getLogger('sh.command')
+        sh_logger.setLevel(logging.CRITICAL)
+
     @modules.on_start()
     def _activate_rp(self):
         self.log.info('Activate GR80211 radio program')
