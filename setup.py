@@ -17,5 +17,5 @@ setup(
     description='UniFlex Module - GNU Radio',
     long_description='UniFlex Module - GNU Radio',
     keywords='wireless control',
-    install_requires=['sh']
+    install_requires=['sh', 'pyric']
 )
