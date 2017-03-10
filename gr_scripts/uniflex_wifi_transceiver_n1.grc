@@ -46,7 +46,7 @@
     </param>
     <param>
       <key>id</key>
-      <value>uniflex_wifi_transceiver</value>
+      <value>uniflex_wifi_transceiver_n1</value>
     </param>
     <param>
       <key>max_nouts</key>
