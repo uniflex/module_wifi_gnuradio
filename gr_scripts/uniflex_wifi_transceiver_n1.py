@@ -3,7 +3,7 @@
 ##################################################
 # GNU Radio Python Flow Graph
 # Title: Uniflex Wifi Transceiver
-# Generated: Thu Mar  9 14:48:51 2017
+# Generated: Fri Mar 10 14:30:08 2017
 ##################################################
 
 import os
@@ -35,12 +35,15 @@ class uniflex_wifi_transceiver(gr.top_block):
         ##################################################
         self.usrp_addr = usrp_addr = "addr=192.168.10.2"
         self.tx_gain = tx_gain = 0.75
+        self.src_mac = src_mac = [0x12, 0x34, 0x56, 0x78, 0x90, 0xab]
         self.samp_rate = samp_rate = 5e6
         self.rx_gain = rx_gain = 0.75
         self.lo_offset = lo_offset = 0
-        self.freq = freq = 5.89e9
+        self.freq = freq = 5890000000
         self.encoding = encoding = 0
+        self.dst_mac = dst_mac = [0x30, 0x14, 0x4a, 0xe6, 0x46, 0xe4]
         self.chan_est = chan_est = 0
+        self.bss_mac = bss_mac = [0x42, 0x42, 0x42, 0x42, 0x42, 0x42]
 
         ##################################################
         # Blocks
@@ -81,7 +84,7 @@ class uniflex_wifi_transceiver(gr.top_block):
         self.uhd_usrp_sink_0.set_center_freq(uhd.tune_request(freq, rf_freq = freq - lo_offset, rf_freq_policy=uhd.tune_request.POLICY_MANUAL), 0)
         self.uhd_usrp_sink_0.set_normalized_gain(tx_gain, 0)
         self.ieee802_11_parse_mac_0 = ieee802_11.parse_mac(False, True)
-        self.ieee802_11_mac_0 = ieee802_11.mac(([0x12, 0x34, 0x56, 0x78, 0x90, 0xab]), ([0x30, 0x14, 0x4a, 0xe6, 0x46, 0xe4]), ([0x42, 0x42, 0x42, 0x42, 0x42, 0x42]))
+        self.ieee802_11_mac_0 = ieee802_11.mac((src_mac), (dst_mac), (bss_mac))
         self.ieee802_11_ether_encap_0 = ieee802_11.ether_encap(False)
         self.foo_wireshark_connector_0 = foo.wireshark_connector(127, False)
         self.foo_packet_pad2_0 = foo.packet_pad2(False, False, 0.001, 10000, 10000)
@@ -122,6 +125,12 @@ class uniflex_wifi_transceiver(gr.top_block):
         self.tx_gain = tx_gain
         self.uhd_usrp_sink_0.set_normalized_gain(self.tx_gain, 0)
 
+
+    def get_src_mac(self):
+        return self.src_mac
+
+    def set_src_mac(self, src_mac):
+        self.src_mac = src_mac
 
     def get_samp_rate(self):
         return self.samp_rate
@@ -164,12 +173,24 @@ class uniflex_wifi_transceiver(gr.top_block):
         self.encoding = encoding
         self.wifi_phy_hier_0.set_encoding(self.encoding)
 
+    def get_dst_mac(self):
+        return self.dst_mac
+
+    def set_dst_mac(self, dst_mac):
+        self.dst_mac = dst_mac
+
     def get_chan_est(self):
         return self.chan_est
 
     def set_chan_est(self, chan_est):
         self.chan_est = chan_est
         self.wifi_phy_hier_0.set_chan_est(self.chan_est)
+
+    def get_bss_mac(self):
+        return self.bss_mac
+
+    def set_bss_mac(self, bss_mac):
+        self.bss_mac = bss_mac
 
 
 def main(top_block_cls=uniflex_wifi_transceiver, options=None):

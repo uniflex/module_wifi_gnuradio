@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
-<?grc format='1' created='3.7.10'?>
+<?grc format='1' created='3.7.12'?>
 <flow_graph>
   <timestamp>Fri Jul 18 10:38:08 2014</timestamp>
   <block>
@@ -79,6 +79,33 @@
     <param>
       <key>title</key>
       <value></value>
+    </param>
+  </block>
+  <block>
+    <key>variable</key>
+    <param>
+      <key>comment</key>
+      <value></value>
+    </param>
+    <param>
+      <key>_enabled</key>
+      <value>True</value>
+    </param>
+    <param>
+      <key>_coordinate</key>
+      <value>(976, 444)</value>
+    </param>
+    <param>
+      <key>_rotation</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>id</key>
+      <value>bss_mac</value>
+    </param>
+    <param>
+      <key>value</key>
+      <value>[0x42, 0x42, 0x42, 0x42, 0x42, 0x42]</value>
     </param>
   </block>
   <block>
@@ -205,6 +232,33 @@
     <param>
       <key>value</key>
       <value>0</value>
+    </param>
+  </block>
+  <block>
+    <key>variable</key>
+    <param>
+      <key>comment</key>
+      <value></value>
+    </param>
+    <param>
+      <key>_enabled</key>
+      <value>True</value>
+    </param>
+    <param>
+      <key>_coordinate</key>
+      <value>(976, 372)</value>
+    </param>
+    <param>
+      <key>_rotation</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>id</key>
+      <value>dst_mac</value>
+    </param>
+    <param>
+      <key>value</key>
+      <value>[0x30, 0x14, 0x4a, 0xe6, 0x46, 0xe4]</value>
     </param>
   </block>
   <block>
@@ -357,7 +411,7 @@
     </param>
     <param>
       <key>value</key>
-      <value>5.89e9</value>
+      <value>5890000000</value>
     </param>
   </block>
   <block>
@@ -799,6 +853,33 @@
     <param>
       <key>widget</key>
       <value>combo_box</value>
+    </param>
+  </block>
+  <block>
+    <key>variable</key>
+    <param>
+      <key>comment</key>
+      <value></value>
+    </param>
+    <param>
+      <key>_enabled</key>
+      <value>True</value>
+    </param>
+    <param>
+      <key>_coordinate</key>
+      <value>(976, 300)</value>
+    </param>
+    <param>
+      <key>_rotation</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>id</key>
+      <value>src_mac</value>
+    </param>
+    <param>
+      <key>value</key>
+      <value>[0x12, 0x34, 0x56, 0x78, 0x90, 0xab]</value>
     </param>
   </block>
   <block>
@@ -1271,7 +1352,7 @@
     <key>ieee802_11_mac</key>
     <param>
       <key>bss_mac</key>
-      <value>[0x42, 0x42, 0x42, 0x42, 0x42, 0x42]</value>
+      <value>bss_mac</value>
     </param>
     <param>
       <key>alias</key>
@@ -1287,7 +1368,7 @@
     </param>
     <param>
       <key>dst_mac</key>
-      <value>[0x30, 0x14, 0x4a, 0xe6, 0x46, 0xe4]</value>
+      <value>dst_mac</value>
     </param>
     <param>
       <key>_enabled</key>
@@ -1315,7 +1396,7 @@
     </param>
     <param>
       <key>src_mac</key>
-      <value>[0x12, 0x34, 0x56, 0x78, 0x90, 0xab]</value>
+      <value>src_mac</value>
     </param>
   </block>
   <block>
