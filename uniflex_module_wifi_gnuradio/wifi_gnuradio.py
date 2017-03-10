@@ -1,5 +1,6 @@
 import os
 import sh
+import time
 import logging
 import pyric.utils.channels as channels
 import uniflex_module_gnuradio
@@ -71,6 +72,7 @@ class WiFiGnuRadioModule(uniflex_module_gnuradio.GnuRadioModule):
         tapIface = "tap0"
         while True:
             try:
+                time.sleep(1)
                 sh.ifconfig(tapIface)
                 break
             except sh.ErrorReturnCode_1:
