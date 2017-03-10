@@ -1,7 +1,6 @@
 import os
 import sh
 import logging
-from enum import Enum
 import pyric.utils.channels as channels
 import uniflex_module_gnuradio
 from uniflex.core import modules
@@ -12,29 +11,29 @@ __version__ = "0.1.0"
 __email__ = "{zubow, gawlowicz}@tkn.tu-berlin.de"
 
 
-"""
-    WiFi GNURadio connector module, i.e. IEEE 802.11 WiFi implemented in GnuRadio. Implementation is
-    based on https://github.com/bastibl/gr-ieee802-11
-
-    Supported functionality:
-    - all functions from generic GnuRadio module
-    - freq
-    - samp_rate
-    - rx_gain
-    - tx_gain
-    - encoding *
-    - chan_est *
-    - lo_offset *
-    - * (not yet implemented)
-
-    Howto:
-    1) activate the radio program using activate_radio_program(gr_scripts/uniflex_wifi_transceiver.grc)
-    2) read/write parameters
-"""
 class WiFiGnuRadioModule(uniflex_module_gnuradio.GnuRadioModule):
     """
-        WiFI GNURadio connector module.
+        WiFi GNURadio connector module.
+        IEEE 802.11 WiFi implemented in GnuRadio.
+        Implementation is based on https://github.com/bastibl/gr-ieee802-11
+
+        Supported functionality:
+        - all functions from generic GnuRadio module
+        - freq
+        - samp_rate
+        - rx_gain
+        - tx_gain
+        - encoding *
+        - chan_est *
+        - lo_offset *
+        - * (not yet implemented)
+
+        Howto:
+        1) activate the radio program using activate_radio_program
+           (gr_scripts/uniflex_wifi_transceiver.grc)
+        2) read/write parameters
     """
+
     def __init__(self, usrp_addr="addr=192.168.30.2",
                  ctrl_socket_host="localhost",
                  ctrl_socket_port=8080,
@@ -44,10 +43,10 @@ class WiFiGnuRadioModule(uniflex_module_gnuradio.GnuRadioModule):
                  src_ipv4_address="192.168.123.1",
                  dst_ipv4_address="192.168.123.2"):
 
-        super(WiFiGnuRadioModule, self).__init__(usrp_addr, ctrl_socket_host, ctrl_socket_port)
+        super(WiFiGnuRadioModule, self).__init__(usrp_addr, ctrl_socket_host,
+                                                 ctrl_socket_port)
 
         self.log = logging.getLogger('WiFiGnuRadioModule')
-
         self.uniflex_path = os.environ['UNIFLEX_PATH']
         self.fid = open(os.path.join(self.uniflex_path, "modules", "wifi_gnuradio", "gr_scripts", "uniflex_wifi_transceiver.grc"))
         self.grc_xml = self.fid.read()
@@ -68,7 +67,6 @@ class WiFiGnuRadioModule(uniflex_module_gnuradio.GnuRadioModule):
     def _activate_rp(self):
         self.log.info('Activate GR80211 radio program')
         self.activate_radio_program(self.grc_radio_program_name, self.grc_xml)
-
 
         tapIface = "tap0"
         while True:
@@ -111,7 +109,6 @@ class WiFiGnuRadioModule(uniflex_module_gnuradio.GnuRadioModule):
         # delegate to generic function
         self.set_parameters(inval)
 
-
     def get_channel(self, ifaceName):
 
         self.log.info('Getting channel for {}:{}'
@@ -151,7 +148,6 @@ class WiFiGnuRadioModule(uniflex_module_gnuradio.GnuRadioModule):
 
         return tx_gain_dBm
 
-
     def set_bandwidth(self, bw, ifaceName):
 
         self.log.info('Setting bandwidth on iface {}:{} to {}'
@@ -162,7 +158,6 @@ class WiFiGnuRadioModule(uniflex_module_gnuradio.GnuRadioModule):
         # delegate to generic function
         self.set_parameters(inval)
 
-
     def get_bandwidth(self, ifaceName):
         self.log.debug("getting bandwidth of interface: {}".format(ifaceName))
 
@@ -171,7 +166,6 @@ class WiFiGnuRadioModule(uniflex_module_gnuradio.GnuRadioModule):
         samp_rate = self.get_parameters(gvals)
 
         return samp_rate
-
 
     def set_rx_gain(self, rx_gain_dBm, ifaceName):
         # TODO convert power_dBm to tx power of USRP
