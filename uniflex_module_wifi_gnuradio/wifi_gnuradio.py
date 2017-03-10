@@ -50,10 +50,10 @@ class WiFiGnuRadioModule(uniflex_module_gnuradio.GnuRadioModule):
 
         self.log = logging.getLogger('WiFiGnuRadioModule')
         self.uniflex_path = os.environ['UNIFLEX_PATH']
-        self.fid = open(os.path.join(self.uniflex_path, "modules", "wifi_gnuradio", "gr_scripts", "uniflex_wifi_transceiver.grc"))
-        self.grc_xml = self.fid.read()
-
         self.grc_radio_program_name = gnu_rp_name
+
+        self.fid = open(os.path.join(self.uniflex_path, "modules", "wifi_gnuradio", "gr_scripts", gnu_rp_name + ".grc"))
+        self.grc_xml = self.fid.read()
 
         # WiFi Configuration
         self.src_mac = src_mac
