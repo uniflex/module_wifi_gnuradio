@@ -42,7 +42,8 @@ class WiFiGnuRadioModule(uniflex_module_gnuradio.GnuRadioModule):
                  dst_mac="30:14:4a:e6:46:e4",
                  bss_mac="66:66:66:66:66:66",
                  src_ipv4_address="192.168.123.1",
-                 dst_ipv4_address="192.168.123.2"):
+                 dst_ipv4_address="192.168.123.2",
+                 gnu_rp_name="uniflex_wifi_transceiver"):
 
         super(WiFiGnuRadioModule, self).__init__(usrp_addr, ctrl_socket_host,
                                                  ctrl_socket_port)
@@ -52,7 +53,7 @@ class WiFiGnuRadioModule(uniflex_module_gnuradio.GnuRadioModule):
         self.fid = open(os.path.join(self.uniflex_path, "modules", "wifi_gnuradio", "gr_scripts", "uniflex_wifi_transceiver.grc"))
         self.grc_xml = self.fid.read()
 
-        self.grc_radio_program_name = 'uniflex_wifi_transceiver'
+        self.grc_radio_program_name = gnu_rp_name
 
         # WiFi Configuration
         self.src_mac = src_mac
