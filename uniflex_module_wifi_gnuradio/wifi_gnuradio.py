@@ -108,7 +108,7 @@ class WiFiGnuRadioModule(uniflex_module_gnuradio.GnuRadioModule):
                       .format(ifaceName, self.device, channel, freq))
 
         inval = {}
-        inval['freq'] = freq
+        inval['freq'] = freq * 1e6
         # delegate to generic function
         self.set_parameters(inval)
 
@@ -117,10 +117,14 @@ class WiFiGnuRadioModule(uniflex_module_gnuradio.GnuRadioModule):
         self.log.info('Getting channel for {}:{}'
                       .format(ifaceName, self.device))
 
-        gvals = ['freq']
+        gvals = ['freq'] 
         # delegate to generic function
         freq = self.get_parameters(gvals)
+        if freq == None:
+           return None
 
+        freq = freq['freq']
+        freq = float(freq) * 1e-6
         # convert channel to freq
         ch = channels.rf2ch(int(freq))
 
